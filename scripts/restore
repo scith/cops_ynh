@@ -25,7 +25,7 @@ sudo apt-get install php5-gd php5-sqlite php5-json php5-intl -y
 sudo mkdir -p $final_path
 sudo cp -a ./sources/* $final_path/
 
-# Create cops user and join nextcloud/owncloud/www-data groups
+# Create cops user and join YunoHost-multimedia
 runninguser="${app}-ynh"
 # 1.  Create the user
 # Create a system account for COPS if it doesn't already exists
@@ -41,15 +41,17 @@ fi
 
 ynh_app_setting_set "$app" runninguser "$runninguser"
 
-# 2. Add cops-ynh to groups www-data and nextcloud/owncloud if they exist
-sudo usermod -a -G www-data $runninguser
-for filesharing in "nextcloud" "owncloud"; do
-    app_id=$(sudo yunohost app list --installed -f "$filesharing" \
-            --output-as json | grep -Po '"id":[ ]?"\K.*?(?=")' | head -1)
-    [[ -z "$app_id" ]] || {
-        sudo usermod -a -G $filesharing $runninguser
-    }
-done
+# 2. Create YunoHost-Multimedia folder and add cops-ynh
+	# Add yunohost.multimedia directory
+	wget -qq https://github.com/YunoHost-Apps/yunohost.multimedia/archive/master.zip
+	unzip -qq master.zip
+	sudo ./yunohost.multimedia-master/script/ynh_media_build.sh
+	# Give write access to the yunohost.multimedia directory so that Sickrage can move Series to the Series directory
+	sudo usermod -a -G multimedia $runninguser
+	# Creates the "Movies" subfolder in "Video"
+	sudo mkdir -p $calibre
+	# Fix permissions
+	sudo ./yunohost.multimedia-master/script/ynh_media_build.sh
 
 # Restore permissions to app files
 # you may need to make some file and/or directory writeable by www-data (nginx user)

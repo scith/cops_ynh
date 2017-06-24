@@ -15,7 +15,7 @@ app=$YNH_APP_INSTANCE_NAME
 domain=$YNH_APP_ARG_DOMAIN
 path=$YNH_APP_ARG_PATH
 is_public=$YNH_APP_ARG_IS_PUBLIC
-calibre=$YNH_APP_ARG_CALIBRE
+calibre="/home/yunohost.multimedia/share/Books"
 
 # No basic auth if app is private
 if [ "$is_public" = "Yes" ];
@@ -79,7 +79,7 @@ sed -i "s@TIMEZONETOCHANGE@$timezone@g" ../conf/config_local.php
 sudo cp ../conf/config_local.php $final_path
 sudo cp ../conf/robots.txt $final_path
 
-# Create cops user and join nextcloud/owncloud/www-data groups
+# Create cops user and join YunoHost-multimedia
 runninguser="${app}-ynh"
 # 1.  Create the user
 # Create a system account for COPS if it doesn't already exists
@@ -95,15 +95,17 @@ fi
 
 ynh_app_setting_set "$app" runninguser "$runninguser"
 
-# 2. Add cops-ynh to groups www-data and nextcloud/owncloud if they exist
-sudo usermod -a -G www-data $runninguser
-for filesharing in "nextcloud" "owncloud"; do
-    app_id=$(sudo yunohost app list --installed -f "$filesharing" \
-            --output-as json | grep -Po '"id":[ ]?"\K.*?(?=")' | head -1)
-    [[ -z "$app_id" ]] || {
-	sudo usermod -a -G $filesharing $runninguser
-    }
-done
+# 2. Create YunoHost-Multimedia folder and add cops-ynh
+	# Add yunohost.multimedia directory
+	wget -qq https://github.com/YunoHost-Apps/yunohost.multimedia/archive/master.zip
+	unzip -qq master.zip
+	sudo ./yunohost.multimedia-master/script/ynh_media_build.sh
+	# Give write access to the yunohost.multimedia directory so that Sickrage can move Series to the Series directory
+	sudo usermod -a -G multimedia $runninguser
+	# Creates the "Movies" subfolder in "Video"
+	sudo mkdir -p $calibre
+	# Fix permissions
+	sudo ./yunohost.multimedia-master/script/ynh_media_build.sh
 
 # Set permissions
 sudo chmod ug+rw -R $final_path
